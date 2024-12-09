@@ -1,11 +1,12 @@
-import { Text, View, StyleSheet, Pressable, Image, TextInput, ScrollView } from 'react-native'
+import { Text, View, StyleSheet, Pressable, Image, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
 import { useState, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as ImagePicker from 'expo-image-picker'
-import CheckBox from 'react-native-checkbox'
+import CheckBox from 'expo-checkbox'
 import { validateEmail, validateFirstName, validatePhoneNumber } from '../utils'
+import * as ImageManipulator from 'expo-image-manipulator'
 
-const Profile = () =>{
+const Profile = ( {navigation} ) =>{
     const [email, setEmail] = useState('')
     const [firstName, setFirstname] = useState('')
     const [lastName, setLastName] = useState('')
@@ -23,10 +24,20 @@ const Profile = () =>{
                 const asyncFirstName = await AsyncStorage.getItem('firstName')
                 const asyncLastName = await AsyncStorage.getItem('lastName')
                 const asyncPhoneNumber = await AsyncStorage.getItem('phoneNumber')
+                const asyncOrderStatuses = await AsyncStorage.getItem('orderStatuses')
+                const asyncPasswordChanges = await AsyncStorage.getItem('passwordChanges')
+                const asyncSpecialOffers = await AsyncStorage.getItem('specialOffers')
+                const asyncNewsletter = await AsyncStorage.getItem('newsletter')
+                const asyncImage = await AsyncStorage.getItem('image')
                 setEmail(JSON.parse(asyncEmail.toLowerCase()))
                 setFirstname(JSON.parse(asyncFirstName))
                 setLastName(JSON.parse(asyncLastName))
                 setPhoneNumber(JSON.parse(asyncPhoneNumber))
+                setIsCheckedOrderStatuses(JSON.parse(asyncOrderStatuses))
+                setIsCheckedPasswordChanges(JSON.parse(asyncPasswordChanges))
+                setIsCheckedSpecialOffers(JSON.parse(asyncSpecialOffers))
+                setIsCheckedNewsletter(JSON.parse(asyncNewsletter))
+                setImage(JSON.parse(asyncImage))
             }catch(e){
                 console.log(`An error occured: ${e}`)
             }
@@ -58,33 +69,115 @@ const Profile = () =>{
             await AsyncStorage.setItem('lastName', JSON.stringify(lastName))
             await AsyncStorage.setItem('email', JSON.stringify(email))
             await AsyncStorage.setItem('phoneNumber', JSON.stringify(phoneNumber))
+            await AsyncStorage.setItem('passwordChanges', JSON.stringify(isCheckedPasswordChanges))
+            await AsyncStorage.setItem('orderStatuses', JSON.stringify(isCheckedOrderStatuses))
+            await AsyncStorage.setItem('specialOffers', JSON.stringify(isCheckedSpecialOffers))
+            await AsyncStorage.setItem('newsletter', JSON.stringify(isCheckedNewsletter))
+            await AsyncStorage.setItem('image', JSON.stringify(image))
         }catch(e){
             console.log(`An error occured: ${e}`)
         }
     }
 
-    const discardChanges = () => {
-
+    const discardChanges = async () => {
+        try{
+            const asyncEmail = await AsyncStorage.getItem('email')
+            const asyncFirstName = await AsyncStorage.getItem('firstName')
+            const asyncLastName = await AsyncStorage.getItem('lastName')
+            const asyncPhoneNumber = await AsyncStorage.getItem('phoneNumber')
+            const asyncOrderStatuses = await AsyncStorage.getItem('orderStatuses')
+            const asyncPasswordChanges = await AsyncStorage.getItem('passwordChanges')
+            const asyncSpecialOffers = await AsyncStorage.getItem('specialOffers')
+            const asyncNewsletter = await AsyncStorage.getItem('newsletter')
+            const asyncImage = await AsyncStorage.getItem('image')
+            setEmail(JSON.parse(asyncEmail.toLowerCase()))
+            setFirstname(JSON.parse(asyncFirstName))
+            setLastName(JSON.parse(asyncLastName))
+            setPhoneNumber(JSON.parse(asyncPhoneNumber))
+            setIsCheckedOrderStatuses(JSON.parse(asyncOrderStatuses))
+            setIsCheckedPasswordChanges(JSON.parse(asyncPasswordChanges))
+            setIsCheckedSpecialOffers(JSON.parse(asyncSpecialOffers))
+            setIsCheckedNewsletter(JSON.parse(asyncNewsletter))
+            setImage(JSON.parse(asyncImage))
+        }catch(e){
+            console.log(`An error occured: ${e}`)
+        }
     }
 
-    const logOut = () => {
-        
+    const logOut = async () => {
+        try{
+            await AsyncStorage.clear()
+            setEmail('')
+            setFirstname('')
+            setLastName('')
+            setPhoneNumber('')
+            setImage('')
+            setIsCheckedNewsletter(false)
+            setIsCheckedOrderStatuses(false)
+            setIsCheckedPasswordChanges(false)
+            setIsCheckedSpecialOffers(false)
+            navigation.navigate('Onboarding')
+        }catch(e){
+            console.log(`An error occured: ${e}`)
+        }
     }
+
+    const isValid = validateEmail(email) && validateFirstName(firstName) && validatePhoneNumber(phoneNumber)
 
     return (
-        <ScrollView style={styles.container}>
+        <View style={styles.container}>
+        <View style={styles.header}>
+            <Pressable
+                onPress={() => navigation.goBack()}
+            >
+                <Image
+                source={require('../assets/back-circle.png')}
+                resizeMode='contain'
+                style={styles.backCircle}
+                />
+            </Pressable>
+            <Image
+                source={require('../assets/little-lemon-logo.png')}
+                resizeMode='contain'
+                style={styles.headerLogo}
+            />
+            {image && typeof image === 'string' && (
+                <Image source={{ uri: image }} style={styles.imageTop} />
+            )}
+            {(!image || typeof image !== 'string') && (
+                <View style={styles.noImageTop}>
+                    <Text style={styles.noImageText}>
+                    {firstName?.[0]?.toUpperCase()}{lastName?.[0]?.toUpperCase()}
+                    </Text>
+                </View>
+            )}
+        </View>
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 50 : 0}
+        >
+        <ScrollView>
             <View style={styles.innerContainer}>
                 <Text style={styles.largeText}>Personal information</Text>
                 <Text style={styles.sectionText}>Avatar</Text>
                 <View style={styles.avatarContainer}>
-                    {image && <Image source={{ uri: image }} style={styles.image} />}
-                    {!image && <View style={styles.noImage}><Text style={styles.noImageText}>{firstName[0]}{lastName[0]}</Text></View>}
-                        <Pressable style={styles.darkButton} title="Change" onPress={pickImage}>
-                            <Text style={styles.darkButtonText}>Change</Text>
-                        </Pressable>
-                        <Pressable style={styles.lightButton} title="Remove" onPress={removeImage}>
-                            <Text style={styles.lightButtonText}>Remove</Text>
-                        </Pressable>
+                    {image && typeof image === 'string' && (
+                        <Image source={{ uri: image }} style={styles.image} />
+                    )}
+                    {(!image || typeof image !== 'string') && (
+                        <View style={styles.noImage}>
+                            <Text style={styles.noImageText}>
+                            {firstName?.[0]?.toUpperCase()}{lastName?.[0]?.toUpperCase()}
+                            </Text>
+                        </View>
+                    )}
+                    <Pressable style={styles.darkButton} title="Change" onPress={pickImage}>
+                        <Text style={styles.darkButtonText}>Change</Text>
+                    </Pressable>
+                    <Pressable style={styles.lightButton} title="Remove" onPress={removeImage}>
+                        <Text style={styles.lightButtonText}>Remove</Text>
+                    </Pressable>
                 </View>
                 <Text style={styles.sectionText}>First name</Text>
                 <TextInput
@@ -115,23 +208,37 @@ const Profile = () =>{
                     <CheckBox
                         value={isCheckedOrderStatuses}
                         onValueChange={(newValueOrderStatuses) => setIsCheckedOrderStatuses(newValueOrderStatuses)}
-                        label='Order statuses'
+                        color={isCheckedOrderStatuses ? '#546861' : ''}
+                        style={styles.checkBoxStyle}
                     />
+                    <Text style={styles.checkboxText}>Order Statuses</Text>
+                </View>
+                <View style={styles.checkboxContainer}>
                     <CheckBox
                         value={isCheckedPasswordChanges}
                         onValueChange={(newValuePasswordChanges) => setIsCheckedPasswordChanges(newValuePasswordChanges)}
-                        label='Password changes'
+                        color={isCheckedPasswordChanges ? '#546861' : ''}
+                        style={styles.checkBoxStyle}
                     />
+                    <Text style={styles.checkboxText}>Password Changes</Text>
+                </View>
+                <View style={styles.checkboxContainer}>
                     <CheckBox
                         value={isCheckedSpecialOffers}
                         onValueChange={(newValueSpecialOffers) => setIsCheckedSpecialOffers(newValueSpecialOffers)}
-                        label='Special offers'
+                        color={isCheckedSpecialOffers ? '#546861' : ''}
+                        style={styles.checkBoxStyle}
                     />
+                    <Text style={styles.checkboxText}>Special Offers</Text>
+                </View>
+                <View style={styles.checkboxContainer}>
                     <CheckBox
                         value={isCheckedNewsletter}
                         onValueChange={(newValueNewsletter) => setIsCheckedNewsletter(newValueNewsletter)}
-                        label='Newsletter'
+                        color={isCheckedNewsletter ? '#546861' : ''}
+                        style={styles.checkBoxStyle}
                     />
+                    <Text style={styles.checkboxText}>Newsletter</Text>
                 </View>
                 <Pressable style={styles.logOutButton} title="Log out" onPress={logOut}>
                     <Text style={styles.logOutText}>Log out</Text>
@@ -140,18 +247,66 @@ const Profile = () =>{
                     <Pressable style={styles.discardButton} title="Discard changes" onPress={discardChanges}>
                         <Text style={styles.lightButtonText}>Discard changes</Text>
                     </Pressable>
-                    <Pressable style={styles.saveButton} title="Save changes" onPress={saveChanges}>
-                        <Text style={styles.darkButtonText}>Save changes</Text>
+                    <Pressable 
+                        style={isValid ? styles.saveButtonEnabled : styles.saveButtonDisabled} 
+                        title="Save changes" 
+                        disabled={!isValid}
+                        onPress={saveChanges}>
+                        <Text style={isValid ? styles.darkButtonText : styles.lightButtonText}>Save changes</Text>
                     </Pressable>
                 </View>
             </View>
         </ScrollView>
+        </KeyboardAvoidingView>
+        </View>
     )
 }
 
 export default Profile
 
 const styles = StyleSheet.create({
+    header: {
+        backgroundColor: '#ffffff',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 20,
+        marginBottom: 20
+    },
+    headerLogo: {
+        marginTop: 35,
+        marginBottom: 10,
+        width: 150,
+        height: 50,
+    },
+    backCircle: {
+        marginTop: 35,
+        marginBottom: 10,
+        width: 50,
+        height: 50,
+        backgroundColor: '#546861',
+        borderRadius: 50,
+        marginLeft: 10
+    },
+    imageTop: {
+        width: 50,
+        height: 50,
+        borderRadius: 50,
+        marginTop: 35,
+        marginBottom: 10,
+        marginRight: 10
+    },
+    noImageTop: {
+        width: 50,
+        height: 50,
+        marginTop: 35,
+        borderRadius: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#62D6C4',
+        marginBottom: 10,
+        marginRight: 10
+    },
     container: {
         flex: 1,
         backgroundColor: '#ffffff',
@@ -202,7 +357,9 @@ const styles = StyleSheet.create({
         padding: 10
     },
     checkboxContainer: {
-        marginTop: 10
+        marginTop: 10,
+        flexDirection: 'row',
+        alignItems: 'center'
     },
     darkButton: {
         padding: 10,
@@ -244,6 +401,14 @@ const styles = StyleSheet.create({
         color: '#A0A2B4',
         fontSize: 11,
     },
+    checkboxText: {
+        color: '#A0A2B4',
+        fontSize: 11,
+    },
+    checkBoxStyle: {
+        borderRadius: 5,
+        marginRight: 5
+    },
     inputBox: {
         height: 40,
         marginTop: 5,
@@ -263,15 +428,24 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         borderColor: '#D7A763',
         borderWidth: 2,
-        margin: 10
+        marginTop: 20
     },
-    saveButton: {
+    saveButtonEnabled: {
         padding: 10,
         margin: 10,
         borderRadius: 8,
         width: '45%',
         height: '70%',
         backgroundColor: '#546861'
+    },
+    saveButtonDisabled: {
+        padding: 10,
+        margin: 10,
+        borderRadius: 8,
+        width: '45%',
+        height: '70%',
+        borderWidth: 1,
+        borderColor: '#546861'
     },
     discardButton: {
         padding: 10,

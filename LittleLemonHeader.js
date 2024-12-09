@@ -18,7 +18,7 @@ const Styles = StyleSheet.create({
         backgroundColor: '#ffffff',
     },
     image: {
-        marginTop: 30,
+        marginTop: 35,
         width: 150,
         height: 50,
         alignSelf: 'center'

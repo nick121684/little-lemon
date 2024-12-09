@@ -1,11 +1,10 @@
-import { StyleSheet, Text, View, TextInput, Pressable, Alert } from 'react-native';
+import { StyleSheet, Text, View, TextInput, Pressable, Alert, Image } from 'react-native';
 import { useState, useEffect } from 'react';
 import { validateEmail, validateFirstName } from '../utils';
 import useUpdate from '../utils/useUpdate'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const Onboarding = () => {
-
+const Onboarding = ( {navigation} ) => {
     const [ email, setEmail ] = useState('')
     const [ firstName, setFirstName ] = useState('')
     const isInputValid = validateEmail(email) && validateFirstName(firstName)
@@ -39,9 +38,21 @@ const Onboarding = () => {
         })()
     }, [onboarded, firstName, email]) 
 
+    const subscribe = () => {
+        setOnboarded(!onboarded)
+        navigation.navigate('Profile')
+    }
+
     return(
         <>
         <View style={styles.container}>
+        <View style={styles.header}>
+            <Image
+                source={require('../assets/little-lemon-logo.png')}
+                resizeMode='contain'
+                style={styles.headerLogo}
+            />
+        </View>
             <Text style={styles.text}>Let us get to know you</Text>
             <View style={styles.inputContainer}>
                 <Text style={styles.inputText}>First Name</Text>
@@ -61,9 +72,9 @@ const Onboarding = () => {
         </View>
         <View style={styles.buttonContainer}>
             <Pressable 
-                style={[styles.button, isInputValid ? styles.enableButton : styles.disableButton]}
+                style={[styles.logOutButton, isInputValid ? styles.enableButton : styles.disableButton]}
                 disabled={!isInputValid}
-                onPress={() => setOnboarded(!onboarded)}
+                onPress={() => subscribe()}
             >
                 <Text style={styles.buttonText}>Next</Text>
             </Pressable>
@@ -75,32 +86,41 @@ const Onboarding = () => {
 export default Onboarding
 
 const styles = StyleSheet.create({
+    header: {
+        backgroundColor: '#ffffff',
+    },
+    headerLogo: {
+        marginTop: 35,
+        marginBottom: 10,
+        width: 150,
+        height: 50,
+        alignSelf: 'center'
+    },
     container: {
         flex: 1,
         backgroundColor: '#ffffff'
     },
-    text:{
+    text: {
+        fontWeight: 'bold',
+        color: '#525263',
         fontSize: 22,
-        color: '#535657',
         textAlign: 'center',
-        marginTop: 50,
-        fontWeight: 'bold'
+        marginTop: 50
     },
     inputText:{
         fontSize: 22,
-        color: '#535657',
-        textAlign: 'center',
-        fontWeight: 'bold',
+        color: '#525263',
+        textAlign: 'center'
     },
     inputBox: {
         height: 50,
         margin: 12,
         width: '75%',
-        borderWidth: 2,
         padding: 10,
         fontSize: 16,
-        borderColor: '#535657',
-        backgroundColor: '#aeb3b5',
+        borderColor: '#E0E0E0',
+        borderWidth: 1,
+        color: '#525263',
         borderRadius: 10,
         alignSelf: 'center'
     },
@@ -108,7 +128,8 @@ const styles = StyleSheet.create({
         paddingTop: 100
     },
     buttonContainer: {
-        backgroundColor: '#d0d7d9'
+        backgroundColor: '#FFFFFF',
+        paddingBottom: 20
     },
     button: {
         padding: 10,
@@ -117,8 +138,13 @@ const styles = StyleSheet.create({
         width: '30%',
         alignSelf: 'flex-end',
     },
+    logOutButton: {
+        padding: 10,
+        borderRadius: 8,
+        margin: 10
+    },
     enableButton: {
-        backgroundColor: '#000000'
+        backgroundColor: '#546861'
     },
     disableButton: {
         backgroundColor: '#aeb3b5'
