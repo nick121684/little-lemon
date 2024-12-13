@@ -1,9 +1,15 @@
-import { StyleSheet, View, Image, Text, Pressable, FlatList } from 'react-native'
-import { useState, useEffect } from 'react'
+import { StyleSheet, View, Image, Text, Pressable, FlatList, SafeAreaView, SectionList } from 'react-native'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as SQLite from 'expo-sqlite'
+import { Searchbar } from 'react-native-paper'
+import debounce from 'lodash.debounce'
+import Filters from '../components/Filters'
+import { getSectionListData, useUpdateEffect } from '../utils'
+import { filterByQueryAndCategories } from '../database'
 
 const db = SQLite.openDatabaseSync('little_lemon')
+const sections = ['starters', 'mains', 'desserts', 'drinks', 'specials']
 
 const Home = ( {navigation} ) => {
 
@@ -11,6 +17,11 @@ const Home = ( {navigation} ) => {
     const [lastName, setLastName] = useState('')
     const [image, setImage] = useState(null)
     const [menu, setMenu] = useState([])
+    const [searchBarText, setSearchBarText] = useState('')
+    const [query, setQuery] = useState('')
+    const [filterSelections, setFilterSelections] = useState(
+        sections.map(() => false)
+    )
 
     const getDataFromApiSync = async () => {
         try{
@@ -25,7 +36,7 @@ const Home = ( {navigation} ) => {
     const createMenuTable = async () => {
         try{
             db.execSync(
-                'create table if not exists menu (id integer primary key not null, name text, description text, price decimal(10,2), image text);'
+                'create table if not exists menu (id integer primary key not null, name text, description text, price decimal(10,2), image text, category text);'
             )
         }catch(e){
             console.log(`An error occured ${e}`)
@@ -37,6 +48,7 @@ const Home = ( {navigation} ) => {
             const menuItems = db.getAllSync(
                 'select * from menu;'
             )
+            console.log(menuItems)
             return menuItems
         }catch(e){
             console.log(`An error occured ${e}`)
@@ -45,9 +57,9 @@ const Home = ( {navigation} ) => {
 
     const saveMenu = async (dbMenuToSave) => {
         try{
-            let sqlInsert = 'insert into menu (name, description, price, image) values '
+            let sqlInsert = 'insert into menu (name, description, price, image, category) values '
             dbMenuToSave.map((item) => { 
-                sqlInsert = sqlInsert + `('${item.name}', '${item.description.replace(/'/g, "''")}', ${item.price}, '${item.image}'),`
+                sqlInsert = sqlInsert + `('${item.name}', '${item.description.replace(/'/g, "''")}', ${item.price}, '${item.image}', '${item.category}'),`
             })
             const newSqlInsert = sqlInsert.slice(0, -1)
             //console.log(newSqlInsert)
@@ -77,69 +89,137 @@ const Home = ( {navigation} ) => {
                     ...item
                 }))
                 saveMenu(menuToSave)
-                setMenu(apiMenu)
+                const sectionListData = getSectionListData(apiMenu);
+                setMenu(sectionListData)
             }else{
-                setMenu(dbMenu)
+                const sectionListData = getSectionListData(dbMenu);
+                setMenu(sectionListData)
             }
         })()
     }, [])
 
-    const renderSeperator = () => (
-        <View style={styles.separator} />
-    )
+    useUpdateEffect(() => {
+        (async () => {
+            const activeCategories = sections.filter((s, i) => {
+                if(filterSelections.every((item) => item === false)){
+                    return true
+                }
+                return filterSelections[i]
+            })
+            try{
+                const menuItems = await filterByQueryAndCategories(
+                    query,
+                    activeCategories
+                )
+                const sectionListData = getSectionListData(menuItems)
+                setMenu(sectionListData)
+            }catch(e){
+                console.log(`An error occured: ${e}`)
+            }
+        })()
+    }, [filterSelections, query])
 
-    return(
+    const lookup = useCallback((q) => {
+        setQuery(q)
+    }, [])
+
+    const debouncedLookup = useMemo(() => debounce(lookup, 500), [lookup])
+
+    const handleSearchChange = (text) => {
+        setSearchBarText(text);
+        debouncedLookup(text);
+    }
+
+    const handleFiltersChange = async (index) => {
+        const arrayCopy = [...filterSelections]
+        arrayCopy[index] = !filterSelections[index]
+        setFilterSelections(arrayCopy)
+    }
+
+    return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <Image
                     source={require('../assets/back-circle.png')}
-                    resizeMode='contain'
+                    resizeMode="contain"
                     style={styles.backCircle}
                 />
                 <Image
                     source={require('../assets/little-lemon-logo.png')}
-                    resizeMode='contain'
+                    resizeMode="contain"
                     style={styles.headerLogo}
                 />
-                <Pressable
-                    onPress={() => navigation.navigate('Profile')}
-                >
-                    {image && typeof image === 'string' && (
+                <Pressable onPress={() => navigation.navigate('Profile')}>
+                    {image && typeof image === 'string' ? (
                         <Image source={{ uri: image }} style={styles.imageTop} />
-                    )}
-                    {(!image || typeof image !== 'string') && (
+                    ) : (
                         <View style={styles.noImageTop}>
                             <Text style={styles.noImageText}>
-                            {firstName?.[0]?.toUpperCase()}{lastName?.[0]?.toUpperCase()}
+                                {firstName?.[0]?.toUpperCase()}
+                                {lastName?.[0]?.toUpperCase()}
                             </Text>
                         </View>
                     )}
                 </Pressable>
             </View>
-            <FlatList
-                data={menu}
-                renderItem={({item}) => (
-                    <View style={styles.menuContainer}>
-                        <View style={styles.menuLeftContainer}>
-                            <View style={styles.menuTopElement}><Text style={styles.menuItemText}>{item.name}</Text></View>
-                            <View style={styles.menuBottomElement}><Text style={styles.menuDescriptionText}>{item.description}</Text></View>
-                            <View style={styles.menuPriceElement}><Text style={styles.menuPriceText}>${item.price}</Text></View>
+            <SafeAreaView style={{ flex: 1 }}>
+                <View style={styles.heroContainer}>
+                    <View style={styles.heroTopContainer}>
+                        <View style={styles.heroLeftContainer}>
+                            <Text style={styles.heroTitle}>Little Lemon</Text>
+                            <Text style={styles.heroLocation}>Chicago</Text>
+                            <Text style={styles.heroDescription}>
+                                We are a family-owned Mediterranean restaurant, focused on traditional recipes served with a modern twist.
+                            </Text>
                         </View>
-                        <View style={styles.menuRightElement}>
+                        <View style={styles.heroRightContainer}>
                             <Image
-                                source={{ uri: `https://github.com/Meta-Mobile-Developer-PC/Working-With-Data-API/blob/main/images/${item.image}?raw=true` }}
-                                resizeMode='contain'
-                                style={styles.menuImage}
+                                source={require('../assets/hero-image.jpg')}
+                                resizeMode="contain"
+                                style={styles.heroImage}
                             />
                         </View>
                     </View>
-                )}
-                keyExtractor={(item) => [item.category, item.name]}
-                ItemSeparatorComponent={renderSeperator}
-            >
-            </FlatList>
+                    <Searchbar
+                        onChangeText={handleSearchChange}
+                        value={searchBarText}
+                        style={styles.searchBar}
+                        iconColor="#546861"
+                        inputStyle={{ color: 'black' }}
+                        elevation={0}
+                    />
+                </View>
+                <Filters
+                    selections={filterSelections}
+                    onChange={handleFiltersChange}
+                    sections={sections}
+                />
+                <SectionList
+                    sections={menu}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                        <View style={styles.menuContainer}>
+                            <View style={styles.menuLeftContainer}>
+                                <Text style={styles.menuItemText}>{item.name}</Text>
+                                <Text style={styles.menuDescriptionText}>{item.description}</Text>
+                                <Text style={styles.menuPriceText}>${item.price}</Text>
+                            </View>
+                            <Image
+                                source={{
+                                    uri: `https://github.com/Meta-Mobile-Developer-PC/Working-With-Data-API/blob/main/images/${item.image}?raw=true`,
+                                }}
+                                resizeMode="contain"
+                                style={styles.menuImage}
+                            />
+                        </View>
+                    )}
+                    renderSectionHeader={({ section: { title } }) => (
+                        <Text style={styles.sectionHeader}>{title}</Text>
+                    )}
+                />
+            </SafeAreaView>
         </View>
-    )
+    )    
 }
 
 export default Home
@@ -150,8 +230,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginTop: 20,
-        marginBottom: 20
+        marginTop: 10,
+        marginBottom: 5
     },
     headerLogo: {
         marginTop: 35,
@@ -196,11 +276,6 @@ const styles = StyleSheet.create({
         fontSize: 30,
         color: '#ffffff'
     },
-    separator: {
-        height: 1,
-        backgroundColor: '#ccc',
-        margin: 10,
-    },
     menuDescriptionText: {
         marginHorizontal: 10,
         width: '75%'
@@ -212,8 +287,8 @@ const styles = StyleSheet.create({
         width: '75%'
     },
     menuImage:{
-        height: 75,
-        width: 75,
+        height: 100,
+        width: 100,
         marginRight: 20
     },
     menuContainer: {
@@ -248,5 +323,58 @@ const styles = StyleSheet.create({
         width: '75%',
         color: '#546861',
         fontWeight: 'bold'
+    },
+    heroContainer: {
+        backgroundColor: '#546861',
+    },
+    heroTitle: {
+        color: '#F3D147',
+        fontSize: 38,
+        fontFamily: 'Times New Roman',
+        marginLeft: 10
+    },
+    heroLocation: {
+        color: '#FFFFFF',
+        fontSize: 26,
+        fontFamily: 'Times New Roman',
+        marginLeft: 10
+    },
+    heroDescription: {
+        color: '#FFFFFF',
+        marginTop: 20,
+        marginLeft: 10
+    },
+    heroTopContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between'
+    },
+    heroLeftContainer: {
+        width: '55%'
+    },
+    heroRightContainer: {
+        width: '45%'
+    },
+    heroImage:{
+        height: 140,
+        width: 140,
+        marginLeft: 20,
+        borderRadius: 20,
+        marginTop: 10
+    },
+    searchBar: {
+        marginBottom: 10,
+        marginTop: 10,
+        backgroundColor: '#FFFFFF',
+        shadowRadius: 0,
+        shadowOpacity: 0,
+        width: '90%',
+        alignSelf: 'center',
+        borderRadius: 15
+    },
+    sectionHeader: {
+        fontSize: 24,
+        paddingVertical: 8,
+        color: '#F3D147',
+        backgroundColor: '#546861',
     },
 })
