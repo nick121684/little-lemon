@@ -14,39 +14,30 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const value = await AsyncStorage.getItem('onboarded');
-        setLoggedIn(value ? JSON.parse(value) : false);
+        const value = await AsyncStorage.getItem('onboarded')
+        setLoggedIn(value ? JSON.parse(value) : false)
       } catch (e) {
-        Alert.alert('Error', `Failed to load onboarded status: ${e}`);
-        setLoggedIn(false);
+        Alert.alert('Error', `Failed to load onboarded status: ${e}`)
+        setLoggedIn(false)
       }
-    })();
-  }, []); // Empty dependency array ensures this runs only once
+    })()
+  }, [])
 
   const Stack = createNativeStackNavigator()
 
   if(loggedIn === null){
-    return <SplashScreen />;
+    return <SplashScreen />
   }
-  if(loggedIn){
-    return (
-      <>
-      <NavigationContainer style={{flex: 1}}>
-        <Stack.Navigator>
-        <Stack.Screen options={{headerShown: false}} name="Home" component={Home} />
-        <Stack.Screen options={{headerShown: false}} name="Profile" component={Profile} />
-        <Stack.Screen options={{headerShown: false }} name="Onboarding" component={Onboarding} />
-        </Stack.Navigator>
-      </NavigationContainer>
-      </>
-    )
-  }
+  let routeName
+  loggedIn ? routeName = 'Home' : routeName = 'Onboarding'
+
   return (
     <>
     <NavigationContainer style={{flex: 1}}>
-      <Stack.Navigator>
-      <Stack.Screen options={{headerShown: false }} name="Onboarding" component={Onboarding} />
+      <Stack.Navigator initialRouteName={routeName}>
+      <Stack.Screen options={{headerShown: false}} name="Home" component={Home} />
       <Stack.Screen options={{headerShown: false}} name="Profile" component={Profile} />
+      <Stack.Screen options={{headerShown: false }} name="Onboarding" component={Onboarding} />
       </Stack.Navigator>
     </NavigationContainer>
     </>

@@ -1,14 +1,12 @@
-import { StyleSheet, View, Image, Text, Pressable, FlatList, SafeAreaView, SectionList } from 'react-native'
+import { StyleSheet, View, Image, Text, Pressable, SafeAreaView, SectionList } from 'react-native'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import * as SQLite from 'expo-sqlite'
 import { Searchbar } from 'react-native-paper'
 import debounce from 'lodash.debounce'
 import Filters from '../components/Filters'
 import { getSectionListData, useUpdateEffect } from '../utils'
-import { filterByQueryAndCategories } from '../database'
+import { filterByQueryAndCategories, getMenu, saveMenu, createMenuTable } from '../database'
 
-const db = SQLite.openDatabaseSync('little_lemon')
 const sections = ['starters', 'mains', 'desserts', 'drinks', 'specials']
 
 const Home = ( {navigation} ) => {
@@ -33,42 +31,6 @@ const Home = ( {navigation} ) => {
         }
     }
 
-    const createMenuTable = async () => {
-        try{
-            db.execSync(
-                'create table if not exists menu (id integer primary key not null, name text, description text, price decimal(10,2), image text, category text);'
-            )
-        }catch(e){
-            console.log(`An error occured ${e}`)
-        }
-    }
-
-    const getMenu = async () => {
-        try{
-            const menuItems = db.getAllSync(
-                'select * from menu;'
-            )
-            console.log(menuItems)
-            return menuItems
-        }catch(e){
-            console.log(`An error occured ${e}`)
-        }
-    }
-
-    const saveMenu = async (dbMenuToSave) => {
-        try{
-            let sqlInsert = 'insert into menu (name, description, price, image, category) values '
-            dbMenuToSave.map((item) => { 
-                sqlInsert = sqlInsert + `('${item.name}', '${item.description.replace(/'/g, "''")}', ${item.price}, '${item.image}', '${item.category}'),`
-            })
-            const newSqlInsert = sqlInsert.slice(0, -1)
-            //console.log(newSqlInsert)
-            const result = db.execSync(`${newSqlInsert};`)
-        }catch(e){
-            console.log(`An error occured ${e}`)
-        }
-    }
-
     useEffect (() => {
         (async () => {
             try{
@@ -89,10 +51,10 @@ const Home = ( {navigation} ) => {
                     ...item
                 }))
                 saveMenu(menuToSave)
-                const sectionListData = getSectionListData(apiMenu);
+                const sectionListData = getSectionListData(apiMenu)
                 setMenu(sectionListData)
             }else{
-                const sectionListData = getSectionListData(dbMenu);
+                const sectionListData = getSectionListData(dbMenu)
                 setMenu(sectionListData)
             }
         })()
@@ -126,8 +88,8 @@ const Home = ( {navigation} ) => {
     const debouncedLookup = useMemo(() => debounce(lookup, 500), [lookup])
 
     const handleSearchChange = (text) => {
-        setSearchBarText(text);
-        debouncedLookup(text);
+        setSearchBarText(text)
+        debouncedLookup(text)
     }
 
     const handleFiltersChange = async (index) => {
@@ -139,11 +101,15 @@ const Home = ( {navigation} ) => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Image
-                    source={require('../assets/back-circle.png')}
-                    resizeMode="contain"
-                    style={styles.backCircle}
-                />
+                <Pressable
+                    onPress={() => navigation.goBack()}
+                >
+                    <Image
+                        source={require('../assets/back-circle.png')}
+                        resizeMode="contain"
+                        style={styles.backCircle}
+                    />
+                </Pressable>
                 <Image
                     source={require('../assets/little-lemon-logo.png')}
                     resizeMode="contain"

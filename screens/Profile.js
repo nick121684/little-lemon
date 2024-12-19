@@ -4,7 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as ImagePicker from 'expo-image-picker'
 import CheckBox from 'expo-checkbox'
 import { validateEmail, validateFirstName, validatePhoneNumber } from '../utils'
-import * as ImageManipulator from 'expo-image-manipulator'
 
 const Profile = ( {navigation} ) =>{
     const [email, setEmail] = useState('')
@@ -50,14 +49,12 @@ const Profile = ( {navigation} ) =>{
         allowsEditing: true,
         aspect: [4, 3],
         quality: 1,
-        });
-
-        console.log(result);
+        })
 
         if (!result.canceled) {
-        setImage(result.assets[0].uri);
+        setImage(result.assets[0].uri)
         }
-    };
+    }
 
     const removeImage = () => {
         setImage(null)
@@ -74,6 +71,7 @@ const Profile = ( {navigation} ) =>{
             await AsyncStorage.setItem('specialOffers', JSON.stringify(isCheckedSpecialOffers))
             await AsyncStorage.setItem('newsletter', JSON.stringify(isCheckedNewsletter))
             await AsyncStorage.setItem('image', JSON.stringify(image))
+            navigation.navigate('Home')
         }catch(e){
             console.log(`An error occured: ${e}`)
         }

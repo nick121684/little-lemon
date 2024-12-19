@@ -1,13 +1,13 @@
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native'
 
 const Filters = ({ onChange, selections, sections }) => {
   return (
     <View style={styles.filtersContainer}>
       {sections.map((section, index) => (
         <TouchableOpacity
-          key={section} // Adding a unique key prop
+          key={section}
           onPress={() => {
-            onChange(index);
+            onChange(index)
           }}
           style={{
             justifyContent: 'center',
@@ -28,8 +28,8 @@ const Filters = ({ onChange, selections, sections }) => {
         </TouchableOpacity>
       ))}
     </View>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   filtersContainer: {
@@ -37,6 +37,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 5,
   },
-});
+})
 
-export default Filters;
+export default Filters

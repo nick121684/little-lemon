@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import * as React from 'react'
+import { View, StyleSheet, Image } from 'react-native'
 
 export default function LittleLemonHeader(){
     return (
@@ -10,7 +10,7 @@ export default function LittleLemonHeader(){
                 style={Styles.image}
             />
         </View>
-    );
+    )
 }
 
 const Styles = StyleSheet.create({
@@ -23,4 +23,4 @@ const Styles = StyleSheet.create({
         height: 100,
         alignSelf: 'center'
     }
-});
+})
